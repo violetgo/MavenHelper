@@ -15,6 +15,7 @@ public class MyListNode {
 	protected final List<MavenArtifactNode> value;
 	protected String rightVersion;
 	protected boolean conflict;
+    protected boolean conflictIgnoreRoot = true;
 
 	public MyListNode(Map.Entry<String, List<MavenArtifactNode>> s) {
 		key = s.getKey();
@@ -42,6 +43,14 @@ public class MyListNode {
 					break;
 				}
 			}
+            for (MavenArtifactNode mavenArtifactNode : value) {
+                if (mavenArtifactNode.getParent() == null) {
+                    conflictIgnoreRoot = false;
+                }
+            }
+        }
+        if (conflictIgnoreRoot == true && conflict == false) {
+            conflictIgnoreRoot = false;
 		}
 	}
 
@@ -49,6 +58,10 @@ public class MyListNode {
 		return conflict;
 	}
 
+    public boolean isConflictIgnoreRoot() {
+        return conflictIgnoreRoot;
+    }
+    
 	public String getRightVersion() {
 		return rightVersion;
 	}

@@ -12,6 +12,7 @@ public class MyTreeUserObject {
 
 	boolean showOnlyVersion = false;
 	boolean highlight;
+	boolean ignoreRoot;
 
 	public MyTreeUserObject(MavenArtifactNode mavenArtifactNode) {
 		this.mavenArtifactNode = mavenArtifactNode;

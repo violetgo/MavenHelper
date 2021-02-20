@@ -71,7 +71,9 @@ public class TreeRenderer extends ColoredTreeCellRenderer {
 		if (myTreeUserObject.showOnlyVersion) {
 			SimpleTextAttributes attributes = SimpleTextAttributes.REGULAR_ATTRIBUTES;
 			if (error) {
-				attributes = SimpleTextAttributes.ERROR_ATTRIBUTES;
+				if (!guiForm.getIgnoreRootCheckBox().isSelected() && !myTreeUserObject.ignoreRoot){
+					attributes = SimpleTextAttributes.ERROR_ATTRIBUTES;
+				}
 			}
 			append(currentVersion + " [" + classifier + artifact.getScope() + "]", attributes);
 
@@ -84,8 +86,13 @@ public class TreeRenderer extends ColoredTreeCellRenderer {
 			SimpleTextAttributes attributes;
 			SimpleTextAttributes boldAttributes;
 			if (error) {
-				attributes = SimpleTextAttributes.ERROR_ATTRIBUTES;
-				boldAttributes = errorBoldAttributes;
+				if (guiForm.getIgnoreRootCheckBox().isSelected() && myTreeUserObject.ignoreRoot){
+					attributes = SimpleTextAttributes.REGULAR_ATTRIBUTES;
+					boldAttributes = SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES;
+				}else{
+					attributes = SimpleTextAttributes.ERROR_ATTRIBUTES;
+					boldAttributes = errorBoldAttributes;
+				}
 			} else if ("test".equals(myTreeUserObject.getArtifact().getScope())) {
 				attributes = testAttributes;
 				boldAttributes = testBoldAttributes;

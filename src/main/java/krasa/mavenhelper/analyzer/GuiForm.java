@@ -60,6 +60,7 @@ import java.util.*;
  */
 public class GuiForm implements Disposable {
 	private static final Logger LOG = Logger.getInstance("#krasa.mavenrun.analyzer.GuiForm");
+    private Map<String, Boolean> tempMap = new HashMap<>();
 
 	public static final String WARNING = "Your settings indicates, that conflicts will not be visible, see IDEA-133331\n"
 		+ "If your project is Maven2 compatible, you could try one of the following:\n"
@@ -100,7 +101,8 @@ public class GuiForm implements Disposable {
 	private JButton reimport;
 	protected JEditorPane intellijBugLabel;
 	protected JEditorPane falsePositive;
-	protected DefaultListModel listDataModel;
+    private JCheckBox ignoreRootCheckBox;
+    protected DefaultListModel listDataModel;
 	protected Map<String, List<MavenArtifactNode>> allArtifactsMap;
 	protected final DefaultTreeModel rightTreeModel;
 	protected final DefaultTreeModel leftTreeModel;
@@ -313,7 +315,21 @@ public class GuiForm implements Disposable {
 				mavenProjectsManager.forceUpdateAllProjectsOrFindAllAvailablePomFiles();
 			}
 		});
-	}
+        ignoreRootCheckBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateLeftPanel();
+
+                String value = null;
+                if (allDependenciesAsListRadioButton.isSelected()) {
+                    value = "list";
+                } else if (allDependenciesAsTreeRadioButton.isSelected()) {
+                    value = "tree";
+                }
+                PropertiesComponent.getInstance().setValue(LAST_RADIO_BUTTON, value);
+            }
+        });
+    }
 
 	
 	private void createUIComponents() {
@@ -327,9 +343,14 @@ public class GuiForm implements Disposable {
 				MyListNode value = (MyListNode) o;
 				String rightVersion = value.getRightVersion();
 				final String[] split = value.key.split(":");
-				boolean conflict = value.isConflict();
+                boolean conflict = false;
+                if (ignoreRootCheckBox.isSelected()) {
+                    conflict = value.isConflictIgnoreRoot();
+                } else {
+                    conflict = value.isConflict();
+                }
 
-				SimpleTextAttributes attributes = SimpleTextAttributes.REGULAR_ATTRIBUTES;
+                SimpleTextAttributes attributes = SimpleTextAttributes.REGULAR_ATTRIBUTES;
 				SimpleTextAttributes boldAttributes = SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES;
 				if (conflict && allDependenciesAsListRadioButton.isSelected()) {
 					attributes = SimpleTextAttributes.ERROR_ATTRIBUTES;
@@ -542,7 +563,26 @@ public class GuiForm implements Disposable {
 		for (MavenArtifactNode mavenArtifactNode : dependencyTree) {
 			boolean directMatch = false;
 			MyTreeUserObject treeUserObject = new MyTreeUserObject(mavenArtifactNode);
-			if (search && contains(searchFieldText, mavenArtifactNode)) {
+
+            String key = getArtifactKey(mavenArtifactNode.getArtifact());
+            Boolean isC = tempMap.get(key);
+            if (isC == null) {
+                List<MavenArtifactNode> nodes = allArtifactsMap.get(key);
+                for (MavenArtifactNode node : nodes) {
+                    if (node.getParent() == null) {
+                        treeUserObject.ignoreRoot = true;
+                        tempMap.put(key, true);
+                        break;
+                    }
+                }
+                if (treeUserObject.ignoreRoot == false) {
+                    tempMap.put(key, false);
+                }
+            } else {
+                treeUserObject.ignoreRoot = isC.booleanValue();
+            }
+
+            if (search && contains(searchFieldText, mavenArtifactNode)) {
 				directMatch = true;
 				treeUserObject.highlight = true;
 			}
@@ -568,7 +608,15 @@ public class GuiForm implements Disposable {
 	}
 
 	private boolean hasConflicts(List<MavenArtifactNode> nodes) {
-		String version = null;
+        if (ignoreRootCheckBox.isSelected()) {
+            for (MavenArtifactNode node : nodes) {
+                if (node.getParent() == null) {
+                    return false;
+                }
+            }
+        }
+
+        String version = null;
 		for (MavenArtifactNode node : nodes) {
 			if (version != null && !version.equals(node.getArtifact().getVersion())) {
 				return true;
@@ -633,5 +681,9 @@ public class GuiForm implements Disposable {
 			splitPane.setDividerLocation(0.5);
 		}
 	}
+
+    public JCheckBox getIgnoreRootCheckBox() {
+        return ignoreRootCheckBox;
+    }
 
 }
